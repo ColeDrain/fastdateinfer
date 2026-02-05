@@ -1,0 +1,36 @@
+[package]
+name = "fastdateinfer"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+description = "Fast, consensus-based date format inference"
+license = "MIT"
+repository = "https://github.com/coledrain/fastdateinfer"
+authors = ["Ugochukwu Onyebuchi <pyvinci@gmail.com>"]
+keywords = ["date", "datetime", "inference", "parsing", "strptime"]
+categories = ["date-and-time", "parsing"]
+
+[lib]
+name = "fastdateinfer"
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+thiserror = "1.0"
+rustc-hash = "2.0"
+smallvec = "1.13"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "inference"
+harness = false
+
+[features]
+default = []
+python = ["pyo3"]
+
+[dependencies.pyo3]
+version = "0.22"
+features = ["extension-module"]
+optional = true

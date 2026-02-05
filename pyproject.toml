@@ -1,0 +1,39 @@
+[build-system]
+requires = ["maturin>=1.4,<2.0"]
+build-backend = "maturin"
+
+[project]
+name = "fastdateinfer"
+version = "0.1.0"
+description = "Fast, consensus-based date format inference"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Ugochukwu Onyebuchi", email = "pyvinci@gmail.com"}
+]
+keywords = ["date", "datetime", "inference", "parsing", "strptime", "pandas", "polars"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Rust",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: General",
+]
+
+[project.urls]
+Homepage = "https://github.com/coledrain/fastdateinfer"
+Repository = "https://github.com/coledrain/fastdateinfer"
+Documentation = "https://github.com/coledrain/fastdateinfer#readme"
+
+[tool.maturin]
+features = ["python"]
+python-source = "python"
+module-name = "fastdateinfer"
