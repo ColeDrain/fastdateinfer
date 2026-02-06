@@ -154,10 +154,8 @@ pub fn infer_with_options<S: AsRef<str>>(dates: &[S], options: &InferOptions) ->
 
     // Count token lengths to find majority
     let mut length_counts: FxHashMap<usize, usize> = FxHashMap::default();
-    for tokens in &tokenized_results {
-        if let Some(t) = tokens {
-            *length_counts.entry(t.len()).or_insert(0) += 1;
-        }
+    for t in tokenized_results.iter().flatten() {
+        *length_counts.entry(t.len()).or_insert(0) += 1;
     }
 
     let sample_count = tokenized_results.len();
@@ -254,6 +252,7 @@ fn is_compatible(tokens: &[Token], resolved_types: &[TokenType]) -> bool {
 }
 
 #[cfg(feature = "python")]
+#[allow(clippy::useless_conversion)]
 mod python;
 
 #[cfg(test)]

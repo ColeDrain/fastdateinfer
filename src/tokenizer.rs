@@ -127,7 +127,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
                 }
             }
             // Standalone "T" after a numeric token is an ISO datetime separator
-            if text == "T" && tokens.last().map_or(false, |t| t.numeric_value.is_some()) {
+            if text == "T" && tokens.last().is_some_and(|t| t.numeric_value.is_some()) {
                 tokens.push(Token::separator('T', start));
             } else {
                 tokens.push(Token::text(&text, start));
