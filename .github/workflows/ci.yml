@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
-        run: pip install maturin pytest
+        run: pip install maturin pytest tomli
       - name: Build and install
         run: maturin build --release && pip install target/wheels/*.whl
       - name: Run Python tests
