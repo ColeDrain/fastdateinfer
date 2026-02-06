@@ -26,9 +26,13 @@ criterion = "0.5"
 name = "inference"
 harness = false
 
+[dependencies.rayon]
+version = "1.10"
+optional = true
+
 [features]
 default = []
-python = ["pyo3"]
+python = ["pyo3", "rayon"]
 
 [dependencies.pyo3]
 version = "0.22"

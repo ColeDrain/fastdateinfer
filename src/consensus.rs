@@ -101,6 +101,10 @@ pub fn resolve_consensus(
                 && !position_votes[pos].contains_key(&TokenType::MonthNameShort)
                 && !position_votes[pos].contains_key(&TokenType::WeekdayName)
                 && !position_votes[pos].contains_key(&TokenType::WeekdayShort)
+                && !position_votes[pos].contains_key(&TokenType::TzName)
+                && !position_votes[pos].contains_key(&TokenType::TzZ)
+                && !position_votes[pos].contains_key(&TokenType::TzOffset)
+                && !position_votes[pos].contains_key(&TokenType::AmPm)
         })
         .collect();
 
@@ -179,7 +183,7 @@ pub fn resolve_consensus(
             continue;
         }
 
-        // Check for unambiguous text tokens (month names, etc.)
+        // Check for unambiguous text tokens (month names, weekday names, etc.)
         if votes.contains_key(&TokenType::MonthName) || votes.contains_key(&TokenType::MonthNameShort) {
             let month_type = if votes.contains_key(&TokenType::MonthName) {
                 TokenType::MonthName
@@ -188,6 +192,30 @@ pub fn resolve_consensus(
             };
             resolved.push(month_type);
             month_assigned = Some(pos);
+            continue;
+        }
+        if votes.contains_key(&TokenType::WeekdayName) {
+            resolved.push(TokenType::WeekdayName);
+            continue;
+        }
+        if votes.contains_key(&TokenType::WeekdayShort) {
+            resolved.push(TokenType::WeekdayShort);
+            continue;
+        }
+        if votes.contains_key(&TokenType::TzName) {
+            resolved.push(TokenType::TzName);
+            continue;
+        }
+        if votes.contains_key(&TokenType::TzZ) {
+            resolved.push(TokenType::TzZ);
+            continue;
+        }
+        if votes.contains_key(&TokenType::TzOffset) {
+            resolved.push(TokenType::TzOffset);
+            continue;
+        }
+        if votes.contains_key(&TokenType::AmPm) {
+            resolved.push(TokenType::AmPm);
             continue;
         }
 

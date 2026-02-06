@@ -97,11 +97,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
     let mut position = 0;
 
     while let Some(&c) = chars.peek() {
-        if is_separator(c) {
-            tokens.push(Token::separator(c, position));
-            chars.next();
-            position += 1;
-        } else if c.is_ascii_digit() {
+        if c.is_ascii_digit() {
             // Collect all consecutive digits
             let start = position;
             let mut num_str = String::new();
@@ -117,6 +113,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
             tokens.push(Token::numeric(&num_str, start));
         } else if c.is_alphabetic() {
             // Collect all consecutive letters
+            // This must come before is_separator() because 'T' is both alphabetic
+            // and a separator (ISO datetime), and we need "Tue"/"Thu" as text tokens.
             let start = position;
             let mut text = String::new();
             while let Some(&c) = chars.peek() {
@@ -128,7 +126,16 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
                     break;
                 }
             }
-            tokens.push(Token::text(&text, start));
+            // Standalone "T" after a numeric token is an ISO datetime separator
+            if text == "T" && tokens.last().map_or(false, |t| t.numeric_value.is_some()) {
+                tokens.push(Token::separator('T', start));
+            } else {
+                tokens.push(Token::text(&text, start));
+            }
+        } else if is_separator(c) {
+            tokens.push(Token::separator(c, position));
+            chars.next();
+            position += 1;
         } else if c == '+' || c == '-' {
             // Could be timezone offset like +05:30
             let start = position;

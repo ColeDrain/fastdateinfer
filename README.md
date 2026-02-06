@@ -46,40 +46,70 @@ fmt = fastdateinfer.infer_format(dates)
 df = pd.to_datetime(dates, format=fmt)
 ```
 
+## Handling Dirty Data
+
+Real-world data is messy. **fastdateinfer** tolerates common issues:
+
+```python
+# Empty strings, "N/A", trailing spaces — all handled gracefully
+dates = ["15/03/2025", "20/04/2025", "", "N/A", "25/12/2025 "]
+result = fastdateinfer.infer(dates)
+print(result.format)      # %d/%m/%Y
+print(result.confidence)  # 0.6 (reduced proportionally to dirty rows)
+```
+
+As long as >50% of rows share the same token structure, inference succeeds. Outliers are filtered and confidence is reduced proportionally.
+
+## Strict Mode
+
+For pipelines where every row must conform:
+
+```python
+# Raises ValueError if ANY date doesn't match
+try:
+    result = fastdateinfer.infer(
+        ["15/03/2025", "20/04/2025", "not-a-date"],
+        strict=True
+    )
+except ValueError as e:
+    print(e)  # strict validation failed: 1 of 3 dates incompatible
+```
+
 ## Benchmarks
 
-### vs hidateinfer (Python)
+### Python API (Apple Silicon)
 
-Tested on **29,351 real-world dates** across multiple formats:
+| Dates | `infer()` | `strict=True` |
+|------:|----------:|--------------:|
+| 100 | **0.05 ms** | 0.09 ms |
+| 1,000 | **0.47 ms** | 0.84 ms |
+| 10,000 | **0.80 ms** | 4.48 ms |
+| 100,000 | **4.06 ms** | — |
+| 1,000,000 | **36.7 ms** | — |
 
-| Library | Time | Speedup |
-|---------|-----:|--------:|
-| **fastdateinfer** | 22.5 ms | — |
-| hidateinfer | 6,075 ms | **270x slower** |
+`infer_batch` (100 columns, 3 dates each): **0.22 ms** — columns processed in parallel with GIL released.
 
-### vs pandas / polars
+### Rust Core (Criterion)
 
-Comparison on synthetic data (DD/MM/YYYY format):
+| Dates | Time |
+|------:|-----:|
+| 100 | 43 µs |
+| 1,000 | 436 µs |
+| 10,000 | 518 µs |
+| 100,000 | 1.2 ms |
 
-| Dates | fastdateinfer | pandas (explicit) | pandas (mixed) | Ratio |
-|------:|--------------:|------------------:|---------------:|------:|
-| 100 | **0.05 ms** | 0.24 ms | 0.25 ms | 5x faster |
-| 1,000 | **0.48 ms** | 0.97 ms | 1.02 ms | 2x faster |
-| 10,000 | **0.74 ms** | 2.14 ms | 2.20 ms | 3x faster |
-| 100,000 | **3.39 ms** | 17.00 ms | 17.50 ms | 5x faster |
-
-> **Note**: fastdateinfer does format *inference* while pandas just *parses* a known format. Yet fastdateinfer is faster because it samples intelligently (consensus converges with ~1000 dates).
+Pre-scan overhead is negligible — adds < 5% to large-dataset inference.
 
 ### Scaling
 
 | Dates | Time | Per-date |
 |------:|-----:|---------:|
-| 1,000 | 0.48 ms | 0.48 µs |
-| 10,000 | 0.74 ms | 0.07 µs |
-| 100,000 | 3.39 ms | 0.03 µs |
-| 1,000,000 | ~35 ms | 0.03 µs |
+| 1,000 | 0.47 ms | 0.47 µs |
+| 10,000 | 0.80 ms | 0.08 µs |
+| 100,000 | 4.06 ms | 0.04 µs |
+| 1,000,000 | 36.7 ms | 0.04 µs |
 
-Performance is sublinear due to smart sampling — only ~1000 dates are fully analyzed regardless of input size.
+Performance is sublinear due to smart sampling — only ~1000 dates are fully analyzed regardless of input size. A lightweight pre-scan ensures disambiguating dates (value > 12) are always included in the sample.
 
 ## Supported Formats
 
@@ -92,6 +122,7 @@ Performance is sublinear due to smart sampling — only ~1000 dates are fully an
 | Month name | `15 Mar 2025` | `%d %b %Y` |
 | Month name (full) | `15 March 2025` | `%d %B %Y` |
 | Month first | `Mar 15, 2025` | `%b %d, %Y` |
+| Weekday + timezone | `Mon Jan 13 09:52:52 MST 2014` | `%a %b %d %H:%M:%S %Z %Y` |
 | 2-digit year | `15/03/25` | `%d/%m/%y` |
 | With time | `15/03/25 10.30.00` | `%d/%m/%y %H.%M.%S` |
 | Month-year only | `March, 2025` | `%B, %Y` |
@@ -130,7 +161,7 @@ print(fmt)  # %Y-%m-%d
 
 ### `infer_batch(columns, prefer_dayfirst=True)`
 
-Infer formats for multiple columns at once.
+Infer formats for multiple columns at once. Columns are processed in parallel (GIL released).
 
 ```python
 results = fastdateinfer.infer_batch({
@@ -201,9 +232,11 @@ if result.confidence < 0.9:
 | Feature | fastdateinfer | hidateinfer | pandas | dateutil |
 |---------|:-------------:|:-----------:|:------:|:--------:|
 | Consensus-based | ✅ | ✅ | ❌ | ❌ |
-| Speed (10k dates) | **0.74 ms** | 200 ms | 2 ms* | N/A |
+| Speed (10k dates) | **0.80 ms** | 200 ms | 2 ms* | N/A |
+| Dirty data tolerance | ✅ | ❌ | ❌ | ❌ |
+| Strict validation | ✅ | ❌ | ❌ | ❌ |
 | Returns strptime format | ✅ | ✅ | ❌ | ❌ |
-| Batch inference | ✅ | ❌ | ❌ | ❌ |
+| Parallel batch inference | ✅ | ❌ | ❌ | ❌ |
 | Type hints | ✅ | ❌ | ✅ | ✅ |
 | Pure Rust core | ✅ | ❌ | ❌ | ❌ |
 

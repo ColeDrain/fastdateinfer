@@ -141,25 +141,42 @@ fn infer_format(dates: Vec<String>, prefer_dayfirst: bool) -> PyResult<String> {
 #[pyfunction]
 #[pyo3(signature = (columns, prefer_dayfirst=true))]
 fn infer_batch(
+    py: Python<'_>,
     columns: std::collections::HashMap<String, Vec<String>>,
     prefer_dayfirst: bool,
 ) -> PyResult<std::collections::HashMap<String, PyInferResult>> {
+    use rayon::prelude::*;
+
     let options = InferOptions {
         prefer_dayfirst,
         min_confidence: 0.0,
         strict: false,
     };
 
-    let mut results = std::collections::HashMap::new();
+    let columns_vec: Vec<(String, Vec<String>)> = columns.into_iter().collect();
 
-    for (name, dates) in columns {
-        let result = infer_with_options(&dates, &options)
-            .map(PyInferResult::from)
-            .map_err(|e| PyValueError::new_err(format!("Column '{}': {}", name, e)))?;
-        results.insert(name, result);
+    let results: Vec<(String, std::result::Result<PyInferResult, String>)> =
+        py.allow_threads(|| {
+            columns_vec
+                .into_par_iter()
+                .map(|(name, dates)| {
+                    let result = infer_with_options(&dates, &options)
+                        .map(PyInferResult::from)
+                        .map_err(|e| format!("Column '{}': {}", name, e));
+                    (name, result)
+                })
+                .collect()
+        });
+
+    let mut map = std::collections::HashMap::new();
+    for (name, result) in results {
+        match result {
+            Ok(r) => { map.insert(name, r); }
+            Err(e) => return Err(PyValueError::new_err(e)),
+        }
     }
 
-    Ok(results)
+    Ok(map)
 }
 
 /// Fast, consensus-based date format inference.
@@ -183,7 +200,7 @@ fn fastdateinfer(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(infer_batch, m)?)?;
 
     // Add version info
-    m.add("__version__", "0.1.4")?;
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
 
     Ok(())
 }

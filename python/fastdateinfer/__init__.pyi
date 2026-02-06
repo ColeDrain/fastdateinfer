@@ -75,6 +75,9 @@ def infer_batch(
     """
     Infer date formats for multiple columns at once.
 
+    Columns are processed in parallel with the Python GIL released,
+    making this significantly faster than calling ``infer()`` in a loop.
+
     Args:
         columns: Dictionary mapping column names to lists of date strings
         prefer_dayfirst: Prefer DD/MM format for ambiguous dates (default: True)

@@ -31,4 +31,8 @@ pub enum DateInferError {
     /// No valid date pattern found
     #[error("no valid date pattern found in input")]
     NoValidPattern,
+
+    /// Strict validation failed: some dates are incompatible with the inferred format
+    #[error("strict validation failed: {failed_count} of {total_count} dates incompatible")]
+    StrictValidationFailed { failed_count: usize, total_count: usize },
 }
