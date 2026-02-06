@@ -13,6 +13,7 @@ pub fn apply_rules(tokens: &mut [TokenType]) {
     rule_month_month_sequence(tokens);
     rule_year_position_hints(tokens);
     rule_time_sequence(tokens);
+    rule_ampm_hour12(tokens);
 }
 
 /// Rule: If DayOrMonth appears twice, first is Day, second is Month
@@ -145,6 +146,20 @@ pub fn rule_month_name_adjacency(tokens: &mut [TokenType]) {
         if let Some(right) = tokens[(i + 1)..].iter_mut().find(|t| !matches!(t, TokenType::Separator(_))) {
             if *right == TokenType::DayOrMonth {
                 *right = TokenType::Day;
+            }
+        }
+    }
+}
+
+/// Rule: If AM/PM token is present, Hour24 should be Hour12
+///
+/// Pattern: Hour24 ... AmPm → Hour12 ... AmPm
+fn rule_ampm_hour12(tokens: &mut [TokenType]) {
+    let has_ampm = tokens.contains(&TokenType::AmPm);
+    if has_ampm {
+        for token in tokens.iter_mut() {
+            if *token == TokenType::Hour24 {
+                *token = TokenType::Hour12;
             }
         }
     }

@@ -89,6 +89,17 @@ pub fn resolve_consensus(
         i += 1;
     }
 
+    // Detect subsecond positions: numeric after '.' separator following a time position
+    let mut is_subsecond_position: Vec<bool> = vec![false; num_positions];
+    for pos in 2..num_positions {
+        if position_votes[pos].contains_key(&TokenType::Subsecond)
+            && position_constraints[pos - 1].separator == Some('.')
+            && is_time_position[pos - 2]
+        {
+            is_subsecond_position[pos] = true;
+        }
+    }
+
     // Detect likely Year2 position (last DATE numeric position, not time)
     let mut likely_year2_pos: Option<usize> = None;
 
@@ -97,6 +108,7 @@ pub fn resolve_consensus(
         .filter(|&pos| {
             position_constraints[pos].separator.is_none()
                 && !is_time_position[pos]
+                && !is_subsecond_position[pos]
                 && !position_votes[pos].contains_key(&TokenType::MonthName)
                 && !position_votes[pos].contains_key(&TokenType::MonthNameShort)
                 && !position_votes[pos].contains_key(&TokenType::WeekdayName)
@@ -167,6 +179,12 @@ pub fn resolve_consensus(
             };
             resolved.push(time_type);
             time_component_index += 1;
+            continue;
+        }
+
+        // Handle subsecond positions (detected by '.' after time position)
+        if is_subsecond_position[pos] {
+            resolved.push(TokenType::Subsecond);
             continue;
         }
 

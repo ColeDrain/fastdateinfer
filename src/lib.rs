@@ -576,6 +576,66 @@ mod tests {
     }
 
     // =========================================
+    // AM/PM, subsecond, and timezone offset tests
+    // =========================================
+
+    #[test]
+    fn test_ampm_12hour() {
+        let dates = vec!["01/15/2025 02:30:00 PM", "03/20/2025 10:45:00 AM"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%m/%d/%Y %I:%M:%S %p");
+    }
+
+    #[test]
+    fn test_subsecond_microseconds() {
+        let dates = vec!["2025-01-15T10:30:00.123456", "2025-03-20T14:45:30.654321"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%dT%H:%M:%S.%f");
+    }
+
+    #[test]
+    fn test_subsecond_milliseconds() {
+        let dates = vec!["2025-01-15T10:30:00.123", "2025-03-20T14:45:30.456"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%dT%H:%M:%S.%f");
+    }
+
+    #[test]
+    fn test_subsecond_with_z_timezone() {
+        let dates = vec!["2025-01-15T10:30:00.123456Z", "2025-03-20T14:45:30.654321Z"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%dT%H:%M:%S.%fZ");
+    }
+
+    #[test]
+    fn test_negative_tz_offset() {
+        let dates = vec!["2025-01-15T10:30:00-0500", "2025-03-20T14:45:30-0500"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%dT%H:%M:%S%z");
+    }
+
+    #[test]
+    fn test_negative_tz_offset_with_colon() {
+        let dates = vec!["2025-01-15T10:30:00-05:00", "2025-03-20T14:45:30-05:00"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%dT%H:%M:%S%z");
+    }
+
+    #[test]
+    fn test_positive_tz_offset_still_works() {
+        let dates = vec!["2025-01-15T10:30:00+05:30", "2025-03-20T14:45:30+05:30"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%dT%H:%M:%S%z");
+    }
+
+    #[test]
+    fn test_subsecond_with_negative_tz() {
+        let dates = vec!["2025-01-15T10:30:00.123-0500", "2025-03-20T14:45:30.456-0500"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%dT%H:%M:%S.%f%z");
+    }
+
+    // =========================================
     // Pre-scan sampling fix tests
     // =========================================
 

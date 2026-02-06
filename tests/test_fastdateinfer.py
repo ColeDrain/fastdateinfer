@@ -251,6 +251,55 @@ class TestInconsistentFormatsTolerance:
 # =========================================
 
 
+class TestNewFormats:
+    """Tests for AM/PM, subsecond, and negative TZ offset support."""
+
+    def test_ampm_12hour(self):
+        result = fastdateinfer.infer(["01/15/2025 02:30:00 PM", "03/20/2025 10:45:00 AM"])
+        assert result.format == "%m/%d/%Y %I:%M:%S %p"
+
+    def test_subsecond_microseconds(self):
+        result = fastdateinfer.infer(
+            ["2025-01-15T10:30:00.123456", "2025-03-20T14:45:30.654321"]
+        )
+        assert result.format == "%Y-%m-%dT%H:%M:%S.%f"
+
+    def test_subsecond_milliseconds(self):
+        result = fastdateinfer.infer(
+            ["2025-01-15T10:30:00.123", "2025-03-20T14:45:30.456"]
+        )
+        assert result.format == "%Y-%m-%dT%H:%M:%S.%f"
+
+    def test_subsecond_with_z(self):
+        result = fastdateinfer.infer(
+            ["2025-01-15T10:30:00.123456Z", "2025-03-20T14:45:30.654321Z"]
+        )
+        assert result.format == "%Y-%m-%dT%H:%M:%S.%fZ"
+
+    def test_negative_tz_offset(self):
+        result = fastdateinfer.infer(
+            ["2025-01-15T10:30:00-0500", "2025-03-20T14:45:30-0500"]
+        )
+        assert result.format == "%Y-%m-%dT%H:%M:%S%z"
+
+    def test_negative_tz_with_colon(self):
+        result = fastdateinfer.infer(
+            ["2025-01-15T10:30:00-05:00", "2025-03-20T14:45:30-05:00"]
+        )
+        assert result.format == "%Y-%m-%dT%H:%M:%S%z"
+
+    def test_subsecond_with_negative_tz(self):
+        result = fastdateinfer.infer(
+            ["2025-01-15T10:30:00.123-0500", "2025-03-20T14:45:30.456-0500"]
+        )
+        assert result.format == "%Y-%m-%dT%H:%M:%S.%f%z"
+
+
+# =========================================
+# TestPrescanSamplingFix
+# =========================================
+
+
 class TestPrescanSamplingFix:
     """Tests for the pre-scan fix that ensures disambiguating dates are sampled."""
 

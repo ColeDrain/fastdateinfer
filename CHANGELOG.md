@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.1.6] - 2026-02-06
 
 ### Added
 - `strict` mode now enforced: when `strict=True`, every input date is validated against the inferred format. Returns `StrictValidationFailed` with counts if any are incompatible.
@@ -13,9 +13,13 @@ This project follows [Semantic Versioning](https://semver.org/).
 - pytest added to CI workflow.
 - Pre-scan for disambiguating dates: when sampling large datasets (>1000 dates), a lightweight byte-level scanner now finds dates with values >12 that prove DD/MM vs MM/DD ordering. These are injected into the sample (at most 2 replacements) to prevent misclassification when disambiguating dates fall outside the `step_by` sample.
 - Weekday (`%a`/`%A`) and timezone (`%Z`) token support: dates like `Mon Jan 13 09:52:52 MST 2014` now infer correctly as `%a %b %d %H:%M:%S %Z %Y` — matching hidateinfer's flagship example.
+- AM/PM 12-hour time support (`%I %p`): dates like `01/15/2025 02:30:00 PM` now correctly infer as `%m/%d/%Y %I:%M:%S %p`.
+- Subsecond/microsecond support (`%f`): fractional seconds like `.123456` or `.123` after time components now infer as `%S.%f`.
+- Negative timezone offset support: `-0500` and `-05:00` now correctly tokenized as `%z` instead of being split into separator + number.
 
 ### Fixed
 - `T` in weekday names (Tue, Thu) was incorrectly treated as an ISO datetime separator, causing tokenization mismatch. The tokenizer now only treats standalone `T` after a numeric token as a separator.
+- `-` in timezone offsets was incorrectly consumed by the date separator handler. The tokenizer now checks for time context before treating `-` followed by digits as a timezone offset.
 
 ### Changed
 - `InconsistentFormats` is now tolerant: a majority (>50%) of dates with the same token structure is sufficient. Outliers (empty strings, "N/A", trailing spaces) are filtered out and confidence is reduced proportionally.

@@ -121,6 +121,10 @@ pub fn possible_types_for_number(value: u32, num_digits: usize) -> TypeSet {
                 types.push(TokenType::Year2);
             }
         }
+        3 | 6 => {
+            // Likely subsecond component (milliseconds or microseconds)
+            types.push(TokenType::Subsecond);
+        }
         4 => {
             // Likely a year
             if (1900..=2100).contains(&value) {

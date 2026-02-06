@@ -132,19 +132,20 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
             } else {
                 tokens.push(Token::text(&text, start));
             }
-        } else if is_separator(c) {
-            tokens.push(Token::separator(c, position));
-            chars.next();
-            position += 1;
         } else if c == '+' || c == '-' {
-            // Could be timezone offset like +05:30
+            // Could be timezone offset like +05:30 or -0800
             let start = position;
             let sign = c;
             chars.next();
             position += 1;
 
-            // Check if followed by digits (timezone offset)
-            if chars.peek().is_some_and(|c| c.is_ascii_digit()) {
+            // Check if followed by digits AND in time context (has ':' in previous tokens)
+            let followed_by_digit = chars.peek().is_some_and(|d| d.is_ascii_digit());
+            let in_time_context = tokens.iter().rev().take(8).any(|t| {
+                t.possible_types.first() == Some(&TokenType::Separator(':'))
+            });
+
+            if followed_by_digit && in_time_context {
                 let mut offset = String::from(sign);
                 while let Some(&c) = chars.peek() {
                     if c.is_ascii_digit() || c == ':' {
@@ -163,10 +164,17 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
                     possible_types: types,
                     numeric_value: None,
                 });
+            } else if is_separator(sign) {
+                // '-' is a valid date separator
+                tokens.push(Token::separator(sign, start));
             } else {
-                // Just a standalone sign, treat as separator
+                // '+' not in time context, skip as unknown
                 tokens.push(Token::separator(sign, start));
             }
+        } else if is_separator(c) {
+            tokens.push(Token::separator(c, position));
+            chars.next();
+            position += 1;
         } else {
             // Skip unknown characters
             chars.next();
