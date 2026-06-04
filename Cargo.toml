@@ -1,6 +1,6 @@
 [package]
 name = "fastdateinfer"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 rust-version = "1.70"
 description = "Fast, consensus-based date format inference"
@@ -35,6 +35,6 @@ default = []
 python = ["pyo3", "rayon"]
 
 [dependencies.pyo3]
-version = "0.22"
+version = "0.28"
 features = ["extension-module"]
 optional = true

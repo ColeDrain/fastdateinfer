@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-06-04
+
+### Added
+- Python 3.14 support: PyO3 bumped 0.22 → 0.28, and 3.14 added to the CI test
+  matrix and the release wheel matrix. Wheels now cover Python 3.10–3.14.
+
+### Fixed
+- Spelling-variant months no longer lower confidence: `"May"` is 3 letters so it
+  tokenizes as a short month name while `"January"` is a full one, which split
+  the votes at that position. Both now count toward the resolved month type, so
+  `%d %B %Y` data containing "May" reports full confidence (the format was
+  already correct; only the score dipped).
+
+### Changed
+- CI/release workflows: bumped `actions/checkout` v4→v5, `actions/setup-python`
+  v5→v6, and `actions/{upload,download}-artifact` v4→v5 (Node 20 runtime is
+  being retired). Rust toolchain pin raised 1.81 → 1.83 (PyO3 0.28 MSRV).
+
 ## [0.2.0] - 2026-06-04
 
 ### Fixed
