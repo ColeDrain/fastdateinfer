@@ -1,6 +1,6 @@
 [package]
 name = "fastdateinfer"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 rust-version = "1.70"
 description = "Fast, consensus-based date-format inference — detects the strptime format of a column of dates and resolves ambiguous DD/MM vs MM/DD from examples. A fast, maintained alternative to dateinfer / hi-dateinfer."

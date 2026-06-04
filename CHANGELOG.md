@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] - 2026-06-04
+
+### Changed
+- Package metadata only: sharpened the PyPI/crates.io description and expanded
+  keywords for discoverability — positioned as the maintained successor to
+  dateinfer / hi-dateinfer, and surfaced the DD/MM-vs-MM/DD consensus
+  differentiator plus pandas/polars integration. No code or behavior changes.
+
 ## [0.3.0] - 2026-06-04
 
 ### Added
