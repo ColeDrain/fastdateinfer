@@ -286,7 +286,26 @@ pub fn resolve_consensus(
                     })
                     .collect();
 
-                if options.prefer_dayfirst {
+                // ISO rule: when the year is the *leading* date component
+                // (e.g. YYYY-MM-DD), month precedes day regardless of
+                // prefer_dayfirst — no real-world format orders a leading year
+                // as YYYY-DD-MM. Only when the year trails does prefer_dayfirst
+                // govern the genuinely-ambiguous DD/MM vs MM/DD choice.
+                let year_pos = resolved
+                    .iter()
+                    .position(|t| matches!(t, TokenType::Year4 | TokenType::Year2));
+                let min_ambiguous = std::iter::once(pos)
+                    .chain(other_ambiguous.iter().copied())
+                    .min()
+                    .unwrap_or(pos);
+                let year_leads = year_pos.is_some_and(|yp| yp < min_ambiguous);
+                let effective_dayfirst = if year_leads {
+                    false
+                } else {
+                    options.prefer_dayfirst
+                };
+
+                if effective_dayfirst {
                     // First ambiguous position is day
                     resolved[pos] = TokenType::Day;
                     day_assigned = Some(pos);
@@ -331,9 +350,29 @@ pub fn resolve_consensus(
         resolved[pos] = TokenType::Unknown;
     }
 
+    // Contradiction guard: a date has exactly one day-of-month. Two positions
+    // resolved to Day means both were forced (value > 12 at each), which is
+    // impossible — e.g. "13/13/2025", or a dataset mixing DD/MM with MM/DD.
+    // Year2 is handled before must_be_day in the first pass, so a trailing
+    // 2-digit year (e.g. "13 Jan 14") is not miscounted here.
+    let day_count = resolved.iter().filter(|t| **t == TokenType::Day).count();
+    if day_count >= 2 {
+        return Err(DateInferError::ContradictoryFormat);
+    }
+
     // Calculate confidence
     for pos in 0..num_positions {
-        if matches!(resolved[pos], TokenType::Separator(_) | TokenType::Unknown) {
+        // Separators carry no date information — exclude them from the score.
+        if matches!(resolved[pos], TokenType::Separator(_)) {
+            continue;
+        }
+
+        // Unknown positions are literals we could not classify (e.g. the stray
+        // "W" in "2025-W03-1"). They are a quality problem, so they count
+        // toward the denominator as zero-confidence rather than being skipped —
+        // a half-literal format should not report full confidence.
+        if resolved[pos] == TokenType::Unknown {
+            confidence_count += 1;
             continue;
         }
 

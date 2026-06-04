@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-06-04
+
+### Fixed
+- **ISO ordering with all-ambiguous values**: year-first dates whose day/month
+  values are all ≤ 12 (e.g. `2025-02-03`) were inferred as `%Y-%d-%m`. A leading
+  year now forces month-before-day (ISO 8601) regardless of `prefer_dayfirst`;
+  the flag still governs genuinely-ambiguous trailing-year formats (DD/MM vs MM/DD).
+- **Confidence now reflects unclassified literals**: positions that could not be
+  classified (e.g. the `W` in `2025-W03-1`) were silently excluded from the
+  confidence score, so partly-literal formats reported `confidence = 1.0`. Such
+  positions now count toward the score as zero, so a stray literal lowers it.
+
+### Added
+- Oversized-token guard: a single component longer than 32 bytes (longer than
+  any real date field) is now rejected during tokenization, so untrusted input
+  with a giant junk run is filtered as an outlier instead of being echoed
+  verbatim into the output format string. All-junk input errors cleanly.
+- `DateInferError::ContradictoryFormat` (surfaced as `ValueError` in Python):
+  inputs that force two components to both be the day-of-month — e.g.
+  `13/13/2025`, or a dataset mixing DD/MM with MM/DD — are now rejected instead
+  of producing an invalid `%d/%d/%Y` format string.
+
 ## [0.1.6] - 2026-02-06
 
 ### Added

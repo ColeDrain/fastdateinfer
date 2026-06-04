@@ -128,6 +128,13 @@ Performance is sublinear due to smart sampling — only ~1000 dates are fully an
 | Month-year only | `March, 2025` | `%B, %Y` |
 | Day-month only | `15/Mar` | `%d/%b` |
 
+> **Note on `%Z` (named timezones like `MST`, `EST`):** inference returns the
+> correct `%Z` token, but Python's own `datetime.strptime` cannot reliably parse
+> arbitrary timezone *abbreviations* back — `strptime("...MST...", "...%Z...")`
+> raises in the stdlib. This is a CPython limitation, not an inference error. For
+> round-trippable parsing, prefer numeric offsets (`%z`, e.g. `-0500`) or a
+> parser such as `dateutil`.
+
 ## API Reference
 
 ### `infer(dates, prefer_dayfirst=True, min_confidence=0.0, strict=False)`
