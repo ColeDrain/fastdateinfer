@@ -664,6 +664,129 @@ mod tests {
         assert_eq!(result.format, "%m/%d/%Y");
     }
 
+    // =========================================
+    // Fix 1: ISO ordering with all-ambiguous values
+    // =========================================
+
+    #[test]
+    fn test_iso_ambiguous_values_resolve_month_first() {
+        // Year-first with every value <= 12: must be ISO %Y-%m-%d, never %Y-%d-%m.
+        let dates = vec!["2025-02-03", "2025-04-05"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%d");
+    }
+
+    #[test]
+    fn test_iso_single_ambiguous_date_month_first() {
+        let dates = vec!["2025-02-03"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%Y-%m-%d");
+    }
+
+    #[test]
+    fn test_iso_month_first_even_when_dayfirst_preferred() {
+        // prefer_dayfirst must NOT flip a leading-year format to %Y-%d-%m.
+        let dates = vec!["2025-02-03", "2025-04-05"];
+        let options = InferOptions { prefer_dayfirst: true, ..Default::default() };
+        let result = infer_with_options(&dates, &options).unwrap();
+        assert_eq!(result.format, "%Y-%m-%d");
+    }
+
+    #[test]
+    fn test_trailing_year_still_honors_dayfirst() {
+        // Year trailing + all ambiguous: prefer_dayfirst still governs (no regression).
+        let dates = vec!["02/03/2025", "04/05/2025"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%d/%m/%Y");
+    }
+
+    #[test]
+    fn test_trailing_year_monthfirst_when_requested() {
+        let dates = vec!["02/03/2025", "04/05/2025"];
+        let options = InferOptions { prefer_dayfirst: false, ..Default::default() };
+        let result = infer_with_options(&dates, &options).unwrap();
+        assert_eq!(result.format, "%m/%d/%Y");
+    }
+
+    // =========================================
+    // Oversized-token guard: giant junk is not echoed into the format
+    // =========================================
+
+    #[test]
+    fn test_oversized_junk_row_filtered_not_echoed() {
+        // A 5000-char junk run must not appear in the output; the row is
+        // treated as a non-date outlier alongside the good rows.
+        let big = format!("{}/02/2025", "9".repeat(5000));
+        let dates = vec![
+            "15/03/2025".to_string(),
+            "20/04/2025".to_string(),
+            "25/12/2025".to_string(),
+            big,
+        ];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%d/%m/%Y");
+        assert!(result.format.len() < 32, "format must not contain the junk blob");
+        assert!(result.confidence < 1.0);
+    }
+
+    #[test]
+    fn test_all_oversized_errors_cleanly() {
+        // No valid date structure → clean error, not a giant format string.
+        let big = format!("{}/02/2025", "9".repeat(5000));
+        let dates = vec![big];
+        assert!(infer(&dates).is_err());
+    }
+
+    // =========================================
+    // Fix 2a: contradictory formats are rejected
+    // =========================================
+
+    #[test]
+    fn test_contradictory_mixed_ddmm_mmdd_rejected() {
+        // 13 forces Day at pos 0 in one row, at pos 2 in the other — no month.
+        let dates = vec!["13/01/2025", "01/13/2025"];
+        let result = infer(&dates);
+        assert!(matches!(result, Err(DateInferError::ContradictoryFormat)));
+    }
+
+    #[test]
+    fn test_contradictory_both_high_values_rejected() {
+        // "25/26/2025": both components exceed 12, impossible as day+month.
+        let dates = vec!["25/26/2025"];
+        let result = infer(&dates);
+        assert!(matches!(result, Err(DateInferError::ContradictoryFormat)));
+    }
+
+    #[test]
+    fn test_day_monthname_year2_not_contradictory() {
+        // "13 Jan 14": Day + MonthName + Year2 — must NOT trip the guard,
+        // because Year2 is resolved before must_be_day in the first pass.
+        let dates = vec!["13 Jan 14", "15 Feb 16"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%d %b %y");
+    }
+
+    // =========================================
+    // Fix 3: confidence reflects unclassified literals
+    // =========================================
+
+    #[test]
+    fn test_unknown_token_lowers_confidence() {
+        // The stray "W" cannot be classified; confidence must drop below 1.0.
+        let dates = vec!["2025-W03-1", "2025-W12-3"];
+        let result = infer(&dates).unwrap();
+        assert!(result.confidence < 1.0, "expected <1.0, got {}", result.confidence);
+        assert!(result.confidence > 0.0);
+    }
+
+    #[test]
+    fn test_clean_format_keeps_full_confidence() {
+        // No Unknown tokens → confidence stays at the top of the range.
+        let dates = vec!["2025-01-15", "2025-03-20"];
+        let result = infer(&dates).unwrap();
+        assert!(result.confidence > 0.99, "got {}", result.confidence);
+    }
+
     #[test]
     fn test_prescan_no_disambiguation_uses_preference() {
         // All ambiguous — prescan finds nothing, falls back to prefer_dayfirst

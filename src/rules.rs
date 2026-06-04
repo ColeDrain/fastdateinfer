@@ -11,7 +11,6 @@ pub fn apply_rules(tokens: &mut [TokenType]) {
     rule_month_name_adjacency(tokens);
     rule_duplicate_day_or_month(tokens);
     rule_month_month_sequence(tokens);
-    rule_year_position_hints(tokens);
     rule_time_sequence(tokens);
     rule_ampm_hour12(tokens);
 }
@@ -52,33 +51,6 @@ fn rule_month_month_sequence(tokens: &mut [TokenType]) {
                     *next = TokenType::Day;
                 }
             }
-        }
-    }
-}
-
-/// Rule: Year position hints
-///
-/// - If Year4 is first, it's likely ISO format (YYYY-MM-DD)
-/// - If Year4 is last, Day/Month come before it
-fn rule_year_position_hints(tokens: &mut [TokenType]) {
-    // Find Year4 position
-    let year_pos = tokens.iter().position(|t| *t == TokenType::Year4);
-
-    if let Some(pos) = year_pos {
-        // Find positions of DayOrMonth tokens
-        let ambiguous: Vec<usize> = tokens
-            .iter()
-            .enumerate()
-            .filter(|(_, t)| **t == TokenType::DayOrMonth)
-            .map(|(i, _)| i)
-            .collect();
-
-        if ambiguous.len() == 2 && pos == 0 {
-            // Year first (ISO format): YYYY-MM-DD
-            // Second ambiguous is Month, third is Day
-            tokens[ambiguous[0]] = TokenType::Month;
-            tokens[ambiguous[1]] = TokenType::Day;
-            // Year last is handled by prefer_dayfirst in consensus
         }
     }
 }
@@ -195,20 +167,6 @@ mod tests {
         rule_month_month_sequence(&mut tokens);
         assert_eq!(tokens[0], TokenType::Month);
         assert_eq!(tokens[2], TokenType::Day);
-    }
-
-    #[test]
-    fn test_iso_format_year_first() {
-        let mut tokens = vec![
-            TokenType::Year4,
-            TokenType::Separator('-'),
-            TokenType::DayOrMonth,
-            TokenType::Separator('-'),
-            TokenType::DayOrMonth,
-        ];
-        rule_year_position_hints(&mut tokens);
-        assert_eq!(tokens[2], TokenType::Month);
-        assert_eq!(tokens[4], TokenType::Day);
     }
 
     #[test]
