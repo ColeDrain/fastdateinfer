@@ -9,6 +9,13 @@ use smallvec::SmallVec;
 /// Compact storage for possible token types (inline up to 6 types, no heap allocation)
 pub type TypeSet = SmallVec<[TokenType; 6]>;
 
+/// Maximum byte length of a single date component. The longest legitimate token
+/// is a full weekday/month name ("Wednesday"/"September", 9 bytes) or fractional
+/// seconds — none approach this. A longer run means the input isn't a date, so
+/// we reject it rather than echo a giant junk blob verbatim into the output
+/// format string (it would otherwise be emitted as an `Unknown` literal).
+const MAX_TOKEN_LEN: usize = 32;
+
 /// A token extracted from a date string
 #[derive(Debug, Clone)]
 pub struct Token {
@@ -110,6 +117,9 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
                     break;
                 }
             }
+            if num_str.len() > MAX_TOKEN_LEN {
+                return Err(DateInferError::TokenizeError(input.to_string()));
+            }
             tokens.push(Token::numeric(&num_str, start));
         } else if c.is_alphabetic() {
             // Collect all consecutive letters
@@ -125,6 +135,9 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
                 } else {
                     break;
                 }
+            }
+            if text.len() > MAX_TOKEN_LEN {
+                return Err(DateInferError::TokenizeError(input.to_string()));
             }
             // Standalone "T" after a numeric token is an ISO datetime separator
             if text == "T" && tokens.last().is_some_and(|t| t.numeric_value.is_some()) {
@@ -155,6 +168,9 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>> {
                     } else {
                         break;
                     }
+                }
+                if offset.len() > MAX_TOKEN_LEN {
+                    return Err(DateInferError::TokenizeError(input.to_string()));
                 }
                 let mut types = TypeSet::new();
                 types.push(TokenType::TzOffset);
@@ -231,5 +247,18 @@ mod tests {
     fn test_tokenize_timezone() {
         let tokens = tokenize("2025-01-15T10:30:00+05:30").unwrap();
         assert!(tokens.iter().any(|t| t.possible_types.contains(&TokenType::TzOffset)));
+    }
+
+    #[test]
+    fn test_oversized_token_rejected() {
+        // A run longer than any real date component is rejected outright.
+        let huge = format!("{}/02/2025", "9".repeat(100));
+        assert!(tokenize(&huge).is_err());
+    }
+
+    #[test]
+    fn test_moderately_long_token_still_ok() {
+        // 5-digit run is odd but under the cap — must still tokenize.
+        assert!(tokenize("12345/02/2025").is_ok());
     }
 }
