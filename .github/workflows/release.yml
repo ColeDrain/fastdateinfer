@@ -14,10 +14,10 @@ jobs:
     strategy:
       matrix:
         target: [x86_64, aarch64]
-        python: ["3.10", "3.11", "3.12", "3.13"]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - name: Build wheels
@@ -28,7 +28,7 @@ jobs:
           sccache: "true"
           manylinux: auto
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-linux-${{ matrix.target }}-py${{ matrix.python }}
           path: dist
@@ -38,10 +38,10 @@ jobs:
     strategy:
       matrix:
         target: [x64]
-        python: ["3.10", "3.11", "3.12", "3.13"]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - name: Build wheels
@@ -51,7 +51,7 @@ jobs:
           args: --release --out dist -i python${{ matrix.python }}
           sccache: "true"
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-windows-${{ matrix.target }}-py${{ matrix.python }}
           path: dist
@@ -61,10 +61,10 @@ jobs:
     strategy:
       matrix:
         target: [x86_64, aarch64]
-        python: ["3.10", "3.11", "3.12", "3.13"]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
       - name: Build wheels
@@ -74,7 +74,7 @@ jobs:
           args: --release --out dist -i python${{ matrix.python }}
           sccache: "true"
       - name: Upload wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-macos-${{ matrix.target }}-py${{ matrix.python }}
           path: dist
@@ -82,14 +82,14 @@ jobs:
   sdist:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build sdist
         uses: PyO3/maturin-action@v1
         with:
           command: sdist
           args: --out dist
       - name: Upload sdist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: wheels-sdist
           path: dist
@@ -102,7 +102,7 @@ jobs:
     permissions:
       id-token: write  # Required for trusted publishing
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           pattern: wheels-*
           path: dist

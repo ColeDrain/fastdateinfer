@@ -709,6 +709,29 @@ mod tests {
     }
 
     // =========================================
+    // "May" spelling variant must not lower confidence (Observation A)
+    // =========================================
+
+    #[test]
+    fn test_may_full_month_keeps_confidence() {
+        // "May" is 3 chars (MonthNameShort) among full names (MonthName).
+        // Format resolves to %B; confidence must stay high, not dip.
+        let dates = vec!["15 January 2025", "20 May 2025", "10 June 2025"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%d %B %Y");
+        assert!(result.confidence > 0.99, "got {}", result.confidence);
+    }
+
+    #[test]
+    fn test_may_short_month_keeps_confidence() {
+        // All abbreviated; "May" fits naturally. Resolves to %b, full confidence.
+        let dates = vec!["15 Jan 2025", "20 May 2025", "10 Jun 2025"];
+        let result = infer(&dates).unwrap();
+        assert_eq!(result.format, "%d %b %Y");
+        assert!(result.confidence > 0.99, "got {}", result.confidence);
+    }
+
+    // =========================================
     // Oversized-token guard: giant junk is not echoed into the format
     // =========================================
 

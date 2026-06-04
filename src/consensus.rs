@@ -379,16 +379,27 @@ pub fn resolve_consensus(
         let votes = &position_votes[pos];
         let resolved_type = &resolved[pos];
 
-        // Count how many examples support this resolution
+        // Count how many examples support this resolution. Some token types are
+        // interchangeable for a given field, so votes for the sibling type must
+        // also count — otherwise a benign spelling variant lowers confidence
+        // even though the resolved format is correct. Capped at num_examples to
+        // keep confidence <= 1.0.
         let supporting = votes.get(resolved_type).copied().unwrap_or(0);
-
-        // For DayOrMonth resolved to Day or Month, also count DayOrMonth votes
-        // but cap at num_examples to avoid double-counting
-        let supporting = if *resolved_type == TokenType::Day || *resolved_type == TokenType::Month {
-            let total = supporting + votes.get(&TokenType::DayOrMonth).copied().unwrap_or(0);
-            total.min(num_examples) // Cap to avoid confidence > 1.0
-        } else {
-            supporting
+        let supporting = match *resolved_type {
+            // A DayOrMonth token resolves to Day or Month — count it too.
+            TokenType::Day | TokenType::Month => {
+                (supporting + votes.get(&TokenType::DayOrMonth).copied().unwrap_or(0))
+                    .min(num_examples)
+            }
+            // "May" is 3 letters so it tokenizes as MonthNameShort, while
+            // "January" tokenizes as MonthName. They denote the same field and
+            // both parse under %B, so count both toward whichever was resolved.
+            TokenType::MonthName | TokenType::MonthNameShort => {
+                (votes.get(&TokenType::MonthName).copied().unwrap_or(0)
+                    + votes.get(&TokenType::MonthNameShort).copied().unwrap_or(0))
+                .min(num_examples)
+            }
+            _ => supporting,
         };
 
         let position_confidence = supporting as f64 / num_examples as f64;

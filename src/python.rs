@@ -6,7 +6,7 @@ use pyo3::exceptions::PyValueError;
 use crate::{infer_with_options, InferOptions, InferResult as RustInferResult};
 
 /// Result of date format inference (Python class)
-#[pyclass(name = "InferResult")]
+#[pyclass(name = "InferResult", skip_from_py_object)]
 #[derive(Clone)]
 pub struct PyInferResult {
     /// The inferred strptime format string
@@ -156,7 +156,7 @@ fn infer_batch(
     let columns_vec: Vec<(String, Vec<String>)> = columns.into_iter().collect();
 
     let results: Vec<(String, std::result::Result<PyInferResult, String>)> =
-        py.allow_threads(|| {
+        py.detach(|| {
             columns_vec
                 .into_par_iter()
                 .map(|(name, dates)| {

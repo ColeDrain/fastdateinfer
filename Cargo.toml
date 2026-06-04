@@ -35,6 +35,6 @@ default = []
 python = ["pyo3", "rayon"]
 
 [dependencies.pyo3]
-version = "0.22"
+version = "0.28"
 features = ["extension-module"]
 optional = true
