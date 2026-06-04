@@ -1,23 +1,57 @@
 # fastdateinfer
 
-Fast, consensus-based date format inference written in Rust with Python bindings.
+Fast, consensus-based date-format inference in Rust — a maintained, ~270× faster successor to [dateinfer](https://github.com/jeffreystarr/dateinfer) / [hi-dateinfer](https://github.com/hi-primus/hi-dateinfer).
 
+[![PyPI](https://img.shields.io/pypi/v/fastdateinfer.svg)](https://pypi.org/project/fastdateinfer/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10–3.14](https://img.shields.io/badge/python-3.10%E2%80%933.14-blue.svg)](https://www.python.org/downloads/)
 
-## Why?
+## What it does
 
-**The problem**: Is `01/02/2025` January 2nd or February 1st?
+Give it a list (or column) of date strings; it returns the `strptime` format that parses them — inferred from the examples themselves.
 
-| Library | Approach | Problem |
-|---------|----------|---------|
-| pandas | `dayfirst=True` hint | You must know the format |
-| dateutil | Guess per-element | Inconsistent results |
-| hidateinfer | Consensus voting | Correct, but slow |
+The point is *how* it decides ordering: it reads the **whole column as evidence** rather than each value alone. So it resolves ambiguous `DD/MM` vs `MM/DD` by consensus — a single unambiguous `15/03/2025` (15 can't be a month) settles every ambiguous `01/02/2025` in the same column.
 
-**The solution**: If your data contains `15/03/2025`, we **know** it's DD/MM/YYYY (15 can't be a month). This insight applies to ALL dates, resolving ambiguous ones like `01/02/2025`.
+```python
+import fastdateinfer
 
-**fastdateinfer** implements this consensus algorithm in Rust — **270x faster than hidateinfer**.
+fastdateinfer.infer_format(["15/03/2025", "01/02/2025", "28/12/2025"])
+# '%d/%m/%Y'
+```
+
+It also tolerates dirty rows (`""`, `"N/A"`, reflected in a confidence score), ISO datetimes with timezones, AM/PM, month names, and two-digit years.
+
+## What it replaces
+
+`dateinfer` and its fork `hi-dateinfer` are the established tools for this. The original is archived; the fork's last release was 2021 — both are pure Python. fastdateinfer is the same idea, rebuilt: maintained, type-hinted, a Rust core, wheels for Python 3.10–3.14, and ~270× faster.
+
+| | fastdateinfer | hi-dateinfer | pandas | polars |
+|---|:---:|:---:|:---:|:---:|
+| Resolves ambiguous DD/MM vs MM/DD by consensus | ✅ | ✅ | ❌ (needs `dayfirst`) | ❌ (needs explicit format) |
+| Returns a strptime format string | ✅ | ✅ | ❌ | ❌ |
+| Speed (10k dates) | **~0.9 ms** | ~200 ms | n/a* | n/a* |
+| Maintained | ✅ | ❌ (2021) | ✅ | ✅ |
+| Pure Rust core | ✅ | ❌ | ❌ | ✅ |
+
+<sub>*pandas/polars parse dates; they don't return a format string for you to reuse.</sub>
+
+## Works with pandas and polars
+
+fastdateinfer infers the format; pandas and polars do the parsing. It returns a plain format string, so it drops straight into both — and fills the gap where their own inference can't resolve ambiguous `DD/MM` vs `MM/DD`.
+
+```python
+import fastdateinfer
+
+# pandas
+import pandas as pd
+fmt = fastdateinfer.infer_format(df["date"].dropna().astype(str).tolist())
+df["date"] = pd.to_datetime(df["date"], format=fmt)
+
+# polars
+import polars as pl
+fmt = fastdateinfer.infer_format(df["date"].drop_nulls().to_list())
+df = df.with_columns(pl.col("date").str.to_datetime(fmt))
+```
 
 ## Installation
 
@@ -30,20 +64,14 @@ pip install fastdateinfer
 ```python
 import fastdateinfer
 
-# Infer format from dates
+# Full result: format, confidence, token types
 result = fastdateinfer.infer(["15/03/2025", "01/02/2025", "28/12/2025"])
 print(result.format)      # %d/%m/%Y
 print(result.confidence)  # 1.0
 
-# Just get the format string
+# Just the format string
 fmt = fastdateinfer.infer_format(["2025-01-15", "2025-03-20"])
 print(fmt)  # %Y-%m-%d
-
-# Use with pandas
-import pandas as pd
-dates = ["15/03/2025", "01/02/2025", "28/12/2025"]
-fmt = fastdateinfer.infer_format(dates)
-df = pd.to_datetime(dates, format=fmt)
 ```
 
 ## Handling Dirty Data
