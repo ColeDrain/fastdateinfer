@@ -1,13 +1,13 @@
 [package]
 name = "fastdateinfer"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2021"
 rust-version = "1.70"
-description = "Fast, consensus-based date format inference"
+description = "Fast, consensus-based date-format inference — detects the strptime format of a column of dates and resolves ambiguous DD/MM vs MM/DD from examples. A fast, maintained alternative to dateinfer / hi-dateinfer."
 license = "MIT"
 repository = "https://github.com/coledrain/fastdateinfer"
 authors = ["Ugochukwu Onyebuchi <pyvinci@gmail.com>"]
-keywords = ["date", "datetime", "inference", "parsing", "strptime"]
+keywords = ["date", "datetime", "dateinfer", "strptime", "parsing"]
 categories = ["date-and-time", "parsing"]
 
 [lib]

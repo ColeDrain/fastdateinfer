@@ -5,14 +5,14 @@ build-backend = "maturin"
 [project]
 name = "fastdateinfer"
 dynamic = ["version"]
-description = "Fast, consensus-based date format inference"
+description = "Fast Rust date-format inference: detect the strptime format of a column of dates, resolving ambiguous DD/MM vs MM/DD by consensus. A 270x-faster, maintained alternative to dateinfer / hi-dateinfer."
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [
     {name = "Ugochukwu Onyebuchi", email = "pyvinci@gmail.com"}
 ]
-keywords = ["date", "datetime", "inference", "parsing", "strptime", "pandas", "polars"]
+keywords = ["date", "datetime", "date-format", "format-inference", "strptime", "strftime", "dateinfer", "dateutil", "dayfirst", "parsing", "pandas", "polars", "rust"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
