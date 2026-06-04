@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 This project follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.3.0] - 2026-06-04
 
 ### Added
 - Python 3.14 support: PyO3 bumped 0.22 → 0.28, and 3.14 added to the CI test
